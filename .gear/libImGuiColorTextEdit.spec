@@ -13,6 +13,7 @@ Vcs:           https://github.com/malbajun/ImGuiColorTextEdit.git
 Source:        %name-%version.tar
 BuildRequires(pre): rpm-build-cmake
 BuildRequires: cmake
+BuildRequires: ctest
 BuildRequires: gcc-c++
 # The maintainer's 1.93 RPM still exports an older CMake project version.
 # Check the real library package version while retaining the CMake dependency.
@@ -133,6 +134,7 @@ Main features:
 %changelog
 * Tue Nov 10 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt0.3
 - Check the ImGui version through libimgui-devel while retaining its CMake requirement.
+- Require the separate ctest package for the build-time regression checks.
 
 * Mon Nov 09 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt0.2
 - Base on current goossens upstream with optional standalone Geogram support.
