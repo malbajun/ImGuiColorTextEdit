@@ -1,7 +1,8 @@
 # ALT hasher runner check
 
 The workflow first verifies the environment, then builds packages through gear-hsh.
-It runs on pushes to `ci/alt-hasher` and can be dispatched manually after GitHub
+It runs on relevant pushes to `ci/alt-hasher` and `packaging/alt` (once included
+there), and can be dispatched manually after GitHub
 has registered the workflow on the default branch. No default branch merge is
 required for the push trigger. It does not run on pull requests or publish RPMs.
 
@@ -23,6 +24,10 @@ Successful dependency RPMs are preserved even if a later build fails. APT instal
 the resulting RPMs, and an external CMake project compiles and runs the editor's
 regression checks against the installed packages. Geogram integration can follow
 once the RPM stage passes. The maintainer dependency is never patched automatically.
+
+The final evidence step requires all four runtime/devel RPMs with valid RPM
+magic, all stage-completion markers, and the input revision record. It saves
+filenames, byte counts and SHA-256 digests in `evidence.json` and a check annotation.
 
 `run.sh` defaults to the environment check alone; set
 `ALT_HASHER_BUILD_PACKAGES=1` to run the package/installation stages as CI does.

@@ -2,10 +2,17 @@ name: ALT gear-hsh
 
 on:
   push:
-    branches: [ci/alt-hasher]
+    branches: [ci/alt-hasher, packaging/alt]
     paths:
       - .github/workflows/alt-hasher.yml
       - ci/alt-hasher/**
+      - .gear/**
+      - CMakeLists.txt
+      - cmake/**
+      - '*.cpp'
+      - '*.h'
+      - languages/**
+      - tests/**
   workflow_dispatch:
 
 permissions:
@@ -16,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  smoke:
+  build:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -30,6 +37,8 @@ jobs:
         run: |
           mkdir -p artifacts/alt-hasher
           bash ci/alt-hasher/run.sh 2>&1 | tee artifacts/alt-hasher/runner.log
+      - name: Verify RPM and installed-consumer evidence
+        run: python3 ci/alt-hasher/evidence.py
       - name: Report failure diagnostics
         if: failure()
         run: python3 ci/alt-hasher/report.py
