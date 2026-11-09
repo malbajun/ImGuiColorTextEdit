@@ -35,7 +35,12 @@ filenames, byte counts and SHA-256 digests in `evidence.json` and a check annota
 its default is the existing package maintainer from the supplied ALT specs.
 This is metadata, not a package signature or publication to ALT repositories.
 
-There is a separate dependency issue to resolve before claiming a green package
-build: `libimgui` commit `5b8039ba3318d964d790859ae3b6330931d822bb` has a 1.93.0
-spec but declares 1.91.5 in CMake. This runner check deliberately does not hide
-that issue or substitute another source for the requested dependency.
+The selected `libimgui` commit `5b8039ba3318d964d790859ae3b6330931d822bb`
+has a 1.93.0 spec but declares 1.91.5 in CMake. The editor checks the actual
+`libimgui-devel` RPM version and separately requires its CMake configuration.
+Legacy configurations export include paths through `imgui_INCLUDE_DIRS`; the
+editor propagates those to the imported dependency target when necessary.
+Neither workaround modifies the maintainer source or invents an RPM provide.
+
+ALT ships the CTest driver in the separate `ctest` package. Both the editor's
+build requirements and the installed-consumer environment require it explicitly.
