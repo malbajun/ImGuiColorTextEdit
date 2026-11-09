@@ -3,7 +3,7 @@
 
 Name:          lib%oname
 Version:       1.93.0
-Release:       alt0.2
+Release:       alt0.3
 Summary:       Colorizing text editor for ImGui
 License:       MIT
 Group:         Sciences/Mathematics
@@ -14,7 +14,10 @@ Source:        %name-%version.tar
 BuildRequires(pre): rpm-build-cmake
 BuildRequires: cmake
 BuildRequires: gcc-c++
-BuildRequires: cmake(imgui) >= 1.93.0
+# The maintainer's 1.93 RPM still exports an older CMake project version.
+# Check the real library package version while retaining the CMake dependency.
+BuildRequires: cmake(imgui)
+BuildRequires: libimgui-devel >= 1.93.0
 
 %description
 Syntax highlighting text editor for ImGui.
@@ -56,7 +59,8 @@ Group:         Development/C++
 Summary:       Colorizing text editor for ImGui development files
 
 Requires:      %name = %EVR
-Requires:      cmake(imgui) >= 1.93.0
+Requires:      cmake(imgui)
+Requires:      libimgui-devel >= 1.93.0
 
 %description   devel
 Colorizing text editor for ImGui development files.
@@ -127,6 +131,9 @@ Main features:
 
 
 %changelog
+* Tue Nov 10 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt0.3
+- Check the ImGui version through libimgui-devel while retaining its CMake requirement.
+
 * Mon Nov 09 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt0.2
 - Base on current goossens upstream with optional standalone Geogram support.
 - Install modular language headers and exported CMake targets.
