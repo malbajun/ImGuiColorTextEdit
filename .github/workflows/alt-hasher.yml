@@ -25,7 +25,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Initialize and exercise clean ALT hasher chroot
-        run: bash ci/alt-hasher/run.sh
+        run: |
+          mkdir -p artifacts/alt-hasher
+          bash ci/alt-hasher/run.sh 2>&1 | tee artifacts/alt-hasher/runner.log
+      - name: Report failure diagnostics
+        if: failure()
+        run: python3 ci/alt-hasher/report.py
       - name: Save diagnostic logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

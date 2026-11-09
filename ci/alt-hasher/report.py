@@ -1,0 +1,13 @@
+"""Expose bounded CI diagnostics in check annotations as well as artifacts."""
+
+from pathlib import Path
+
+results = Path("artifacts/alt-hasher")
+for name in ("docker-security.json", "runner.log", "setup.log", "smoke.log", "hasher-privd.log"):
+    path = results / name
+    if not path.is_file():
+        continue
+    tail = "\n".join(path.read_text(errors="replace").splitlines()[-20:])[-5000:]
+    message = f"{name}:\n{tail}"
+    escaped = message.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+    print(f"::error title=ALT hasher diagnostic::{escaped}")
