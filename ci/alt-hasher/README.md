@@ -25,7 +25,7 @@ the resulting RPMs, and an external CMake project compiles and runs the editor's
 regression checks against the installed packages. With
 `ALT_HASHER_BUILD_GEOGRAM=1`, it then builds `malbajun/geogram` branch
 `feature/external-text-editor` against these installed RPMs and exercises a
-consumer of its installed devkit. Geogram is compiled from source in this ALT
+consumer of its installed devkit, including the Lua/ImGui bindings. Geogram is compiled from source in this ALT
 stage; it is not claimed to be an RPM build. CI enables both stages.
 The maintainer dependency is never patched automatically.
 
