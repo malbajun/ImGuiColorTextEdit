@@ -12,10 +12,10 @@ fi
 # Keep ALT's official sources, keyring and package verification enabled.
 apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=40 update
 apt-get -y -o Acquire::Retries=2 -o Acquire::http::Timeout=40 \
-    install gear hasher hasher-priv
+    install gear hasher hasher-priv util-linux
 rpm -q gear hasher hasher-priv > /results/tool-versions.txt
 
-useradd --create-home --uid 1000 builder
+useradd --create-home --uid "${ALT_BUILDER_UID:-1000}" builder
 hasher-useradd builder
 mkdir -p /home/builder/hasher /sys/fs/cgroup/hasher.scope
 chown builder:builder /home/builder/hasher /sys/fs/cgroup/hasher.scope \

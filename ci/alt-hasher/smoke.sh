@@ -4,7 +4,6 @@ set -euo pipefail
 test "$(id -un)" = builder
 test "$HOME" = /home/builder
 # hasher-privd joins the caller's cgroup. Delegate only this container's child.
-echo "$$" > /sys/fs/cgroup/hasher.scope/cgroup.procs
 cat /proc/self/cgroup > /results/builder-cgroup.txt
 grep -q '^0::/hasher.scope$' /results/builder-cgroup.txt
 

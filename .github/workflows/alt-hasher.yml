@@ -35,6 +35,7 @@ jobs:
         env:
           ALT_HASHER_BUILD_PACKAGES: '1'
         run: |
+          set -euo pipefail
           mkdir -p artifacts/alt-hasher
           bash ci/alt-hasher/run.sh 2>&1 | tee artifacts/alt-hasher/runner.log
       - name: Verify RPM and installed-consumer evidence

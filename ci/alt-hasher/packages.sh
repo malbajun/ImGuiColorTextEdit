@@ -2,7 +2,7 @@
 set -euo pipefail
 
 test "$(id -un)" = builder
-echo "$$" > /sys/fs/cgroup/hasher.scope/cgroup.procs
+grep -q '^0::/hasher.scope$' /proc/self/cgroup
 workdir=/home/builder/hasher
 mkdir -p /results/rpms
 
