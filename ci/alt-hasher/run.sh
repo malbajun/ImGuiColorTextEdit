@@ -55,4 +55,11 @@ if [[ ${ALT_HASHER_BUILD_PACKAGES:-0} == 1 ]]; then
     docker exec --workdir /home/builder "$container" \
         bash /sources/ci/alt-hasher/as-builder.sh /sources/ci/alt-hasher/consumer.sh \
         2>&1 | tee "$results_dir/consumer.log"
+    if [[ ${ALT_HASHER_BUILD_GEOGRAM:-0} == 1 ]]; then
+        docker exec "$container" bash /sources/ci/alt-hasher/geogram-dependencies.sh \
+            2>&1 | tee "$results_dir/geogram-dependencies.log"
+        docker exec --workdir /home/builder "$container" \
+            bash /sources/ci/alt-hasher/as-builder.sh /sources/ci/alt-hasher/geogram.sh \
+            2>&1 | tee "$results_dir/geogram.log"
+    fi
 fi

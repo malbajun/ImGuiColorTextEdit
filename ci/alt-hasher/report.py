@@ -7,6 +7,7 @@ for name in (
     "docker-security.json", "runner.log", "setup.log", "smoke.log",
     "imgui-build.log", "editor-build.log", "imgui-provides.txt",
     "install.log", "consumer.log", "hasher-privd.log",
+    "geogram-dependencies.log", "geogram.log",
     "evidence.json",
 ):
     path = results / name

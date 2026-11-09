@@ -22,15 +22,19 @@ After this check passes, `packages.sh` builds the maintainer `libimgui` branch
 the local hasher repository between them. All resolved source commits are saved.
 Successful dependency RPMs are preserved even if a later build fails. APT installs
 the resulting RPMs, and an external CMake project compiles and runs the editor's
-regression checks against the installed packages. Geogram integration can follow
-once the RPM stage passes. The maintainer dependency is never patched automatically.
+regression checks against the installed packages. With
+`ALT_HASHER_BUILD_GEOGRAM=1`, it then builds `malbajun/geogram` branch
+`feature/external-text-editor` against these installed RPMs and exercises a
+consumer of its installed devkit. Geogram is compiled from source in this ALT
+stage; it is not claimed to be an RPM build. CI enables both stages.
+The maintainer dependency is never patched automatically.
 
 The final evidence step requires all four runtime/devel RPMs with valid RPM
 magic, all stage-completion markers, and the input revision record. It saves
 filenames, byte counts and SHA-256 digests in `evidence.json` and a check annotation.
 
 `run.sh` defaults to the environment check alone; set
-`ALT_HASHER_BUILD_PACKAGES=1` to run the package/installation stages as CI does.
+`ALT_HASHER_BUILD_PACKAGES=1 ALT_HASHER_BUILD_GEOGRAM=1` to run all CI stages.
 `ALT_HASHER_PACKAGER` sets the RPM Packager metadata required by Sisyphus checks;
 its default is the existing package maintainer from the supplied ALT specs.
 This is metadata, not a package signature or publication to ALT repositories.

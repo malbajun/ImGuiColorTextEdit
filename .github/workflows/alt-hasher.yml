@@ -34,11 +34,13 @@ jobs:
       - name: Build and verify ALT packages through gear-hsh
         env:
           ALT_HASHER_BUILD_PACKAGES: '1'
+          ALT_HASHER_BUILD_GEOGRAM: '1'
         run: |
           set -euo pipefail
           mkdir -p artifacts/alt-hasher
           bash ci/alt-hasher/run.sh 2>&1 | tee artifacts/alt-hasher/runner.log
       - name: Verify RPM and installed-consumer evidence
+        if: always()
         run: python3 ci/alt-hasher/evidence.py
       - name: Report failure diagnostics
         if: failure()

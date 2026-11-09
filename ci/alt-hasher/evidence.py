@@ -8,7 +8,8 @@ import sys
 
 results = Path(sys.argv[1] if len(sys.argv) > 1 else "artifacts/alt-hasher")
 errors = []
-for name in ("hasher-initroot.ok", "rpm-builds.ok", "installed-consumer.ok", "input-revisions.txt"):
+for name in ("hasher-initroot.ok", "rpm-builds.ok", "installed-consumer.ok",
+             "geogram-integration.ok", "input-revisions.txt"):
     path = results / name
     if not path.is_file() or not path.stat().st_size:
         errors.append(f"missing or empty {name}")
