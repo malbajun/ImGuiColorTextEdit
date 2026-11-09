@@ -39,3 +39,11 @@ docker exec "$container" bash /sources/ci/alt-hasher/setup.sh \
 docker exec --user builder --workdir /home/builder "$container" \
     bash /sources/ci/alt-hasher/smoke.sh 2>&1 | tee "$results_dir/smoke.log"
 test -s "$results_dir/hasher-initroot.ok"
+if [[ ${ALT_HASHER_BUILD_PACKAGES:-0} == 1 ]]; then
+    docker exec --user builder --workdir /home/builder "$container" \
+        bash /sources/ci/alt-hasher/packages.sh 2>&1 | tee "$results_dir/packages.log"
+    docker exec "$container" bash /sources/ci/alt-hasher/install.sh \
+        2>&1 | tee "$results_dir/install.log"
+    docker exec --user builder --workdir /home/builder "$container" \
+        bash /sources/ci/alt-hasher/consumer.sh 2>&1 | tee "$results_dir/consumer.log"
+fi

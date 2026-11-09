@@ -1,6 +1,6 @@
 # ALT hasher runner check
 
-This first workflow verifies the environment before enabling package builds.
+The workflow first verifies the environment, then builds packages through gear-hsh.
 It runs on pushes to `ci/alt-hasher` and can be dispatched manually after GitHub
 has registered the workflow on the default branch. No default branch merge is
 required for the push trigger. It does not run on pull requests or publish RPMs.
@@ -16,10 +16,16 @@ and initialize a clean chroot, and `hsh-run` must execute inside it and query th
 installed base/RPM build packages. Failures preserve setup and helper logs in an
 Actions artifact. Rootless Docker is rejected with an explicit diagnostic.
 
-After this check passes, package jobs can use `gear-hsh` to build the maintainer
-`libimgui` branch `sis_in` and then the editor's `packaging/alt` branch, retaining
-the local hasher repository between them. Geogram integration follows the RPM
-installation check. The maintainer dependency is never patched automatically.
+After this check passes, `packages.sh` builds the maintainer `libimgui` branch
+`sis_in`, then the checked-out editor branch (based on `packaging/alt`), retaining
+the local hasher repository between them. All resolved source commits are saved.
+Successful dependency RPMs are preserved even if a later build fails. APT installs
+the resulting RPMs, and an external CMake project compiles and runs the editor's
+regression checks against the installed packages. Geogram integration can follow
+once the RPM stage passes. The maintainer dependency is never patched automatically.
+
+`run.sh` defaults to the environment check alone; set
+`ALT_HASHER_BUILD_PACKAGES=1` to run the package/installation stages as CI does.
 
 There is a separate dependency issue to resolve before claiming a green package
 build: `libimgui` commit `5b8039ba3318d964d790859ae3b6330931d822bb` has a 1.93.0

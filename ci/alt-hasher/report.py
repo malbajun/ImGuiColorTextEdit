@@ -3,7 +3,11 @@
 from pathlib import Path
 
 results = Path("artifacts/alt-hasher")
-for name in ("docker-security.json", "runner.log", "setup.log", "smoke.log", "hasher-privd.log"):
+for name in (
+    "docker-security.json", "runner.log", "setup.log", "smoke.log",
+    "imgui-build.log", "editor-build.log", "imgui-provides.txt",
+    "install.log", "consumer.log", "hasher-privd.log",
+):
     path = results / name
     if not path.is_file():
         continue
