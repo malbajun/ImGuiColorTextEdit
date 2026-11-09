@@ -4,6 +4,7 @@ set -euo pipefail
 test "$(id -un)" = builder
 grep -q '^0::/hasher.scope$' /proc/self/cgroup
 workdir=/home/builder/hasher
+packager=${ALT_HASHER_PACKAGER:?Set the package maintainer metadata for sisyphus_check}
 mkdir -p /results/rpms
 
 # Preserve successful dependency RPMs even if a later build fails.
@@ -30,7 +31,7 @@ git -c safe.directory=/sources clone --no-hardlinks /sources /home/builder/edito
 # an RPM provide to satisfy the editor's version requirement.
 (
     cd /home/builder/imgui
-    gear-hsh --workdir="$workdir" --nprocs=4 --mountpoints=/proc --verbose
+    gear-hsh --workdir="$workdir" --nprocs=4 --mountpoints=/proc --packager="$packager" --verbose
 ) 2>&1 | tee /results/imgui-build.log
 
 while IFS= read -r -d '' package; do
@@ -41,6 +42,6 @@ cat /results/imgui-provides.txt
 
 (
     cd /home/builder/editor
-    gear-hsh --workdir="$workdir" --nprocs=4 --mountpoints=/proc --verbose
+    gear-hsh --workdir="$workdir" --nprocs=4 --mountpoints=/proc --packager="$packager" --verbose
 ) 2>&1 | tee /results/editor-build.log
 printf '%s\n' 'Both packages built through gear-hsh.' > /results/rpm-builds.ok

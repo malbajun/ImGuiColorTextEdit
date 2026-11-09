@@ -31,6 +31,9 @@ filenames, byte counts and SHA-256 digests in `evidence.json` and a check annota
 
 `run.sh` defaults to the environment check alone; set
 `ALT_HASHER_BUILD_PACKAGES=1` to run the package/installation stages as CI does.
+`ALT_HASHER_PACKAGER` sets the RPM Packager metadata required by Sisyphus checks;
+its default is the existing package maintainer from the supplied ALT specs.
+This is metadata, not a package signature or publication to ALT repositories.
 
 There is a separate dependency issue to resolve before claiming a green package
 build: `libimgui` commit `5b8039ba3318d964d790859ae3b6330931d822bb` has a 1.93.0

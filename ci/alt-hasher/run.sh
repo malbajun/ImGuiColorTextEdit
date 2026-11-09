@@ -36,6 +36,7 @@ trap cleanup EXIT
 # No GitHub token or other secret is passed into the container.
 docker run --detach --name "$container" --privileged --cgroupns=private \
     --env "ALT_BUILDER_UID=$builder_uid" \
+    --env "ALT_HASHER_PACKAGER=${ALT_HASHER_PACKAGER:-Pavel Skrylev <majioa@altlinux.org>}" \
     --mount "type=bind,src=$source_dir,dst=/sources,readonly" \
     --mount "type=bind,src=$results_dir,dst=/results" \
     "$image" sleep infinity
