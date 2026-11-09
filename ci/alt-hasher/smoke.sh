@@ -8,7 +8,7 @@ cat /proc/self/cgroup > /results/builder-cgroup.txt
 grep -q '^0::/hasher.scope$' /results/builder-cgroup.txt
 
 hsh --initroot-only --workdir=/home/builder/hasher --nprocs=4 --verbose
-hsh-run --workdir=/home/builder/hasher -- /bin/sh -ec \
+hsh-run --workdir=/home/builder/hasher --mountpoints=/proc -- /bin/sh -ec \
     'id; rpm -q basesystem rpm-build; test -d /proc/self; uname -m'
 printf '%s\n' 'Clean hasher chroot initialized and executed successfully.' \
     > /results/hasher-initroot.ok

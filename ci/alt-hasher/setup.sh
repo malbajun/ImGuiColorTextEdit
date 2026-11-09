@@ -17,6 +17,9 @@ rpm -q gear hasher hasher-priv > /results/tool-versions.txt
 
 useradd --create-home --uid "${ALT_BUILDER_UID:-1000}" builder
 hasher-useradd builder
+printf '\nallowed_mountpoints=/proc\n' >> /etc/hasher-priv/user.d/builder
+chown root:hashman /etc/hasher-priv/user.d/builder
+chmod 0640 /etc/hasher-priv/user.d/builder
 mkdir -p /home/builder/hasher /sys/fs/cgroup/hasher.scope
 chown builder:builder /home/builder/hasher /sys/fs/cgroup/hasher.scope \
     /sys/fs/cgroup/hasher.scope/cgroup.procs
