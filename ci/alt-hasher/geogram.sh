@@ -5,6 +5,16 @@ test -s /results/installed-consumer.ok
 
 root=/home/builder/geogram
 prefix=/home/builder/geogram-install
+collect_configure_log() {
+    status=$?
+    trap - EXIT
+    if test -f /home/builder/geogram-build/CMakeFiles/CMakeConfigureLog.yaml; then
+        cp /home/builder/geogram-build/CMakeFiles/CMakeConfigureLog.yaml \
+            /results/geogram-configure.log
+    fi
+    exit "$status"
+}
+trap collect_configure_log EXIT
 git clone --single-branch --branch feature/external-text-editor \
     https://github.com/malbajun/geogram.git "$root"
 git -C "$root" log -1 --format='geogram: %H %s' \
