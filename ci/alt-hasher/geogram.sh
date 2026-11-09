@@ -17,7 +17,8 @@ git -C "$root" submodule update --init --depth 1 \
 # This stage checks the application integration on ALT; the preceding library
 # RPMs are built by gear-hsh. Geogram itself is not represented as an RPM here.
 cmake -S "$root" -B /home/builder/geogram-build \
-    -DCMAKE_INSTALL_PREFIX="$prefix" -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$prefix" -DCMAKE_INSTALL_LIBDIR=lib \
+    -DCMAKE_BUILD_TYPE=Release \
     -DGEOGRAM_USE_SYSTEM_TEXT_EDITOR=ON -DGEOGRAM_USE_SYSTEM_GLFW3=ON \
     -DGEOGRAM_WITH_LUA=OFF -DGEOGRAM_LIB_ONLY=ON -DVORPALINE_BUILD_DYNAMIC=ON
 cmake --build /home/builder/geogram-build --parallel 4
