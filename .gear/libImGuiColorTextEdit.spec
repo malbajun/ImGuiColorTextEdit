@@ -3,7 +3,7 @@
 
 Name:          lib%oname
 Version:       1.93.0
-Release:       alt0.3
+Release:       alt1
 Summary:       Colorizing text editor for ImGui
 License:       MIT
 Group:         Sciences/Mathematics
@@ -15,8 +15,6 @@ BuildRequires(pre): rpm-build-cmake
 BuildRequires: cmake
 BuildRequires: ctest
 BuildRequires: gcc-c++
-# The maintainer's 1.93 RPM still exports an older CMake project version.
-# Check the real library package version while retaining the CMake dependency.
 BuildRequires: cmake(imgui)
 BuildRequires: libimgui-devel >= 1.93.0
 
@@ -107,7 +105,7 @@ Main features:
 %cmake \
    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
    -DENABLE_GEOGRAM=ON \
-   -DENABLE_BALAZS=OFF \
+   -DENABLE_BALAZS=ON \
    -DBUILD_SHARED_LIBS=ON \
    -DCMAKE_INSTALL_LIBDIR=%_lib \
    -DBUILD_TESTING=ON \
@@ -132,18 +130,15 @@ Main features:
 
 
 %changelog
-* Tue Nov 10 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt0.3
-- Check the ImGui version through libimgui-devel while retaining its CMake requirement.
-- Require the separate ctest package for the build-time regression checks.
-
-* Mon Nov 09 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt0.2
-- Base on current goossens upstream with optional standalone Geogram support.
-- Install modular language headers and exported CMake targets.
-- Run editor regression checks during package build.
-
-* Wed Oct 14 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt0.1
+* Tue Nov 10 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt1
 - ^ 1.0.0 -> 1.93.0
-- * rebased to new upstream for geogram
+- * rebased to current goossens upstream with optional standalone Geogram
+    and Balazs support.
+- * Check the ImGui version through libimgui-devel while retaining its CMake
+    requirement.
+- * required the separate ctest package for the build-time regression checks.
+- + installed modular language headers and exported CMake targets.
+- * run editor regression checks during package build.
 
 * Thu Nov 28 2024 Pavel Skrylev <majioa@altlinux.org> 1.0.0-alt1
 - initial build for Sisyphus
