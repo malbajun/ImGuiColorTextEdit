@@ -42,20 +42,6 @@
 #endif
 #endif
 
-#ifdef __GEOGRAM__
-// Optional application actions from Bruno Levy's Geogram fork. No Geogram
-// headers, types or libraries are needed by this interface.
-enum TextEditorAction {
-	TEXT_EDITOR_RUN,
-	TEXT_EDITOR_SAVE,
-	TEXT_EDITOR_STOP,
-	TEXT_EDITOR_TOOLTIP,
-	TEXT_EDITOR_COMPLETION,
-	TEXT_EDITOR_TEXT_CHANGED
-};
-using TextEditorCallback = void (*)(TextEditorAction action, void* client_data);
-#endif
-
 
 //
 //	TextEditor
@@ -65,42 +51,6 @@ class TEXTEDITOR_API TextEditor {
 public:
 	// constructor
 	TextEditor();
-
-#ifdef __BALAZS__
-	// From BalazsJako's historical dev branch: choose the full tab span or
-	// a one-cell whitespace arrow without changing the underlying tab width.
-	void SetShowShortTabGlyphs(bool value) { showShortTabGlyphs = value; }
-	bool IsShowingShortTabGlyphs() const { return showShortTabGlyphs; }
-#endif
-
-#ifdef __GEOGRAM__
-	void set_callback(TextEditorCallback callback, void* client_data = nullptr) {
-		geogramCallback = callback;
-		geogramClientData = client_data;
-	}
-
-	const std::string& GetWordContext() const { return geogramWordContext; }
-	std::string GetWordContextAtScreenPos(const ImVec2& screenPos) const;
-
-	// Compatibility helpers retained from the Geogram fork.
-	struct CursorPosition {
-		int line = 0;
-		int column = 0;
-		CursorPosition() = default;
-		CursorPosition(int line, int column) : line(line), column(column) {}
-	};
-	void SetCursorPosition(const CursorPosition& pos);
-	CursorPosition GetMousePosition() const;
-	CursorPosition GetSelectionStart() const;
-	bool HasSelection() const { return AnyCursorHasSelection(); }
-	std::string GetSelection() const { return GetCursorText(cursors.getMainIndex()); }
-	std::string GetLine(int line) const { return line < 0 ? "" : GetLineText(static_cast<size_t>(line)); }
-	void InsertText(const std::string& text);
-	void ShowFindAndReplaceDialog() { OpenFindReplaceWindow(); }
-	// Optional UI resources belong to the application, never to this library.
-	void SetGeogramFindFont(ImFont* font) { geogramFindFont = font; }
-	void SetGeogramCloseButtonLabel(const std::string& label) { geogramCloseLabel = label; }
-#endif
 
 	//
 	// Below is the public API
@@ -179,6 +129,8 @@ public:
 	inline bool IsShowSpacesEnabled() const { return config.showSpaces; }
 	inline void SetShowTabsEnabled(bool value) { config.showTabs = value; }
 	inline bool IsShowTabsEnabled() const { return config.showTabs; }
+	inline void SetShortTabsEnabled(bool value) { config.showShortTabs = value; }
+	inline bool IsShortTabsEnabled() const { return config.showShortTabs; }
 	inline void SetShowLineNumbersEnabled(bool value) { config.showLineNumbers = value; }
 	inline bool IsShowLineNumbersEnabled() const { return config.showLineNumbers; }
 	inline void SetShowMiniMapEnabled(bool value) { config.showMiniMap = value; }
@@ -212,90 +164,33 @@ public:
 	inline size_t GetTextLeftMargin() const { return config.textMargin; }
 
 	// load new text into editor (see note below on cursor and scroll manipulation after setting new text)
+	// none of the SetText create transactions or call configured change callbacks
+	// in fact, the SetText functions do a full reset of the entire editors state
+	// if you want it to be transactional and/or have callbacks, use the ReplaceAllText or ReplaceSectionText API calls instead
 	//
 	// API calls to set/get text are available for all standard C++ UTF-8 and unicode string formats to support fast file en/de-coding
 	// other API calls use UTF-8 encoded std::strings
 	// Dear ImGui also uses UTF-8 encoding across the board for all internal string processing, text rendering, and widgets
 
 	// load UTF-8 encoded string(s)
-	inline void SetText(const std::string_view& text) {
-		reset();
-		document.setUtf8Text(config, text);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
-	inline void SetText(const std::vector<std::string_view>& lines) {
-		reset();
-		document.setUtf8Text(config, lines);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
+	inline void SetText(const std::string_view& text) { reset(); document.setUtf8Text(config, text); }
+	inline void SetText(const std::vector<std::string_view>& lines) { reset(); document.setUtf8Text(config, lines); }
 
 #if (defined(_MSVC_LANG) && _MSVC_LANG >= 202002L) || (__cplusplus >= 202002L)
-	inline void SetText(const std::u8string_view& text) {
-		reset();
-		document.setUtf8Text(config, text);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
-	inline void SetText(const std::vector<std::u8string_view>& lines) {
-		reset();
-		document.setUtf8Text(config, lines);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
+	inline void SetText(const std::u8string_view& text) { reset(); document.setUtf8Text(config, text); }
+	inline void SetText(const std::vector<std::u8string_view>& lines) { reset(); document.setUtf8Text(config, lines); }
 #endif
 
 	// load unicode encoded string(s)
-	inline void SetText(const std::wstring_view& text) {
-		reset();
-		document.setUnicodeText(config, text);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
-	inline void SetText(const std::vector<std::wstring_view>& lines) {
-		reset();
-		document.setUnicodeText(config, lines);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
+	inline void SetText(const std::wstring_view& text) { reset(); document.setUnicodeText(config, text); }
+	inline void SetText(const std::vector<std::wstring_view>& lines) { reset(); document.setUnicodeText(config, lines); }
 
-	inline void SetText(const std::u16string_view& text) {
-		reset();
-		document.setUnicodeText(config, text);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
-	inline void SetText(const std::vector<std::u16string_view>& lines) {
-		reset();
-		document.setUnicodeText(config, lines);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
+	inline void SetText(const std::u16string_view& text) { reset(); document.setUnicodeText(config, text); }
+	inline void SetText(const std::vector<std::u16string_view>& lines) { reset(); document.setUnicodeText(config, lines); }
 
 #ifdef IMGUI_USE_WCHAR32
-	inline void SetText(const std::u32string_view& text) {
-		reset();
-		document.setUnicodeText(config, text);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
-	inline void SetText(const std::vector<std::u32string_view>& lines) {
-		reset();
-		document.setUnicodeText(config, lines);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
-	}
+	inline void SetText(const std::u32string_view& text) { reset(); document.setUnicodeText(config, text); }
+	inline void SetText(const std::vector<std::u32string_view>& lines) { reset(); document.setUnicodeText(config, lines); }
 #endif
 
 	// get text from editor as UTF-8 encoded strings
@@ -318,10 +213,14 @@ public:
 	inline std::string GetSectionText(const DocSelection& selection) const { return GetSectionText(selection.start, selection.end); }
 	inline std::string GetCursorText(size_t cursor) const { return cursor < cursors.size() ? document.getSectionText(cursors[cursor].getSelectionStart(), cursors[cursor].getSelectionEnd()) : ""; }
 	inline std::string GetLineText(size_t line) const { return line < document.size() ? document.getSectionText(DocPos(line, 0), document.getEndOfLine(DocPos(line, 0))) : ""; }
+	inline std::vector<ImWchar> GetLineCodePoints(size_t line) const { return line < document.size() ? document.getLineCodePoints(line) : std::vector<ImWchar>(); }
 
 	// replace text in editor (new text must be UTF-8 encoded)
+	// replace functions do create undoable transactions and execute configured callbacks
+	inline void ReplaceAllText(const std::string_view& text) { replaceSectionText(document.getTop(), document.getBottom(), text); }
 	inline void ReplaceSectionText(DocPos start, DocPos end, const std::string_view& text) { replaceSectionText(normalizePos(start), normalizePos(end), text); }
 	inline void ReplaceSectionText(const DocSelection& selection, const std::string_view& text) { ReplaceSectionText(selection.start, selection.end, text); }
+	inline void InsertSectionText(DocPos pos, const std::string_view& text) { insertSectionText(normalizePos(pos), text); }
 
 	// clear the editor
 	inline void ClearText() { SetText(""); }
@@ -440,6 +339,10 @@ public:
 	inline DocPos FindWordStart(DocPos pos, bool wordOnly=false) const { return document.findWordStart(normalizePos(pos), wordOnly); }
 	inline DocPos FindWordEnd(DocPos pos, bool wordOnly=false) const { return document.findWordEnd(normalizePos(pos), wordOnly); }
 
+	// given a specified document location, match codepoints left and right on that line and return discovered context as a string
+	// a callback function must be provided that determines if a codepoint meets the intended context requirements
+	inline std::string GetContext(DocPos pos, std::function<bool(ImWchar)> isContext) const { return document.getContext(normalizePos(pos), isContext); }
+
 	// find/replace support (strings must be UTF-8 encoded)
 	inline void SelectFirstOccurrenceOf(const std::string_view& text, bool caseSensitive=true, bool wholeWord=false) { selectFirstOccurrenceOf(text, caseSensitive, wholeWord); }
 	inline void SelectNextOccurrenceOf(const std::string_view& text, bool caseSensitive=true, bool wholeWord=false) { selectNextOccurrenceOf(text, caseSensitive, wholeWord); }
@@ -458,6 +361,9 @@ public:
 	// internationalize find window labels (strings must be UTF-8 encoded)
 	inline void SetFindButtonLabel(const std::string_view& label) { findButtonLabel = label; }
 	inline void SetFindAllButtonLabel(const std::string_view& label) { findAllButtonLabel = label; }
+	inline void SetFindCapsButtonLabel(const std::string_view& label) { findCapsButtonLabel = label; }
+	inline void SetFindWholeWordButtonLabel(const std::string_view& label) { findWholeWordButtonLabel = label; }
+	inline void SetFindCloseButtonLabel(const std::string_view& label) { findCloseButtonLabel = label; }
 	inline void SetReplaceButtonLabel(const std::string_view& label) { replaceButtonLabel = label; }
 	inline void SetReplaceAllButtonLabel(const std::string_view& label) { replaceAllButtonLabel = label; }
 
@@ -621,7 +527,7 @@ public:
 	// the editor sets up a popup menu in the right location
 	// the callback has to populate it
 	// context callbacks activate on a right click
-	// hover callbacks are just based on position (no mouse buttons required)
+	// hover callbacks active when mouse is over a glyph (no mouse buttons required)
 	struct PopupData {
 		DocPos pos;
 		void* userData;
@@ -693,6 +599,15 @@ public:
 		currentLineNumber,
 		currentLineHighlight,
 		currentLineHighlightBorder,
+		customColor1,
+		customColor2,
+		customColor3,
+		customColor4,
+		customColor5,
+		customColor6,
+		customColor7,
+		customColor8,
+		customColor9,
 		count
 	};
 
@@ -941,7 +856,7 @@ public:
 
 		// manual trigger key sequence (default is Ctrl+space on all platforms, even MacOS)
 		// remember Dear ImGui reverses Ctrl and Command on MacOS
-		#if __APPLE__
+		#ifdef __APPLE__
 			ImGuiKeyChord triggerShortcut = ImGuiMod_Super | ImGuiKey_Space;
 		#else
 			ImGuiKeyChord triggerShortcut = ImGuiMod_Ctrl | ImGuiKey_Space;
@@ -1154,6 +1069,7 @@ protected:
 		bool autoIndent = true;
 		bool showSpaces = true;
 		bool showTabs = true;
+		bool showShortTabs = true;
 		bool showLineNumbers = true;
 		bool showMiniMap = false;
 		size_t miniMapColumns = 0;
@@ -1455,6 +1371,7 @@ protected:
 		// get part of document text (returned strings are UTF-8 encoded)
 		std::string getSectionText(DocPos start, DocPos end) const;
 		inline std::string getLineText(size_t line) const { return getSectionText(DocPos(line, 0), DocPos(line, at(line).size())); }
+		std::vector<ImWchar> getLineCodePoints(size_t line) const;
 		ImWchar getCodePoint(DocPos location) const;
 
 		// iterate through glyphs between two positions
@@ -1513,6 +1430,8 @@ protected:
 		DocPos normalizePos(DocPos pos) const;
 		inline size_t normalizeLine(size_t line) const { return line >= size() ? size() - 1 : line; }
 
+		std::string getContext(DocPos pos, std::function<bool(ImWchar)> isContext) const;
+
 		DocPos getLeftBeforeHiddenLines(DocPos pos) const;
 		DocPos getRightAfterHiddenLines(DocPos pos) const;
 
@@ -1564,8 +1483,8 @@ protected:
 		inline void resetToStart() { update(getSelectionStart(), getSelectionStart()); }
 		inline void resetToEnd() { update(getSelectionEnd(), getSelectionEnd()); }
 
-		inline void setMain(bool value) { main = value; }
-		inline bool isMain() const { return main; }
+		inline void setMain(bool value) { is_main = value; }
+		inline bool isMain() const { return is_main; }
 
 		inline void setCurrent(bool value) { current = value; }
 		inline bool isCurrent() const { return current; }
@@ -1584,7 +1503,7 @@ protected:
 		// properties
 		DocPos start;
 		DocPos end;
-		bool main = false;
+		bool is_main = false;
 		bool current = true;
 		bool updated = true;
 
@@ -1622,9 +1541,9 @@ protected:
 		bool anyHasSelection() const;
 		bool allHaveSelection() const;
 		inline bool cursorHasSelection(size_t cursor) const { return cursor < size() ? at(cursor).hasSelection() : false; }
-		inline bool mainCursorHasSelection() const { return at(main).hasSelection(); }
+		inline bool mainCursorHasSelection() const { return at(main_index).hasSelection(); }
 		inline bool currentCursorHasSelection() const { return at(current).hasSelection(); }
-		inline bool mainHasUpdate() const { return at(main).isUpdated(); }
+		inline bool mainHasUpdate() const { return at(main_index).isUpdated(); }
 		bool anyHasUpdate() const;
 
 		// clear the selections and create the default cursor
@@ -1637,11 +1556,11 @@ protected:
 		void clearUpdated();
 
 		// get main/current cursor
-		inline Cursor& getMain() { return at(main); }
-		inline size_t getMainIndex() const { return main; }
+		inline Cursor& getMain() { return at(main_index); }
+		inline size_t getMainIndex() const { return main_index; }
 		inline Cursor& getCurrent() { return at(current); }
 		inline size_t getCurrentIndex() const { return current; }
-		inline iterator getMainAsIterator() { return begin() + static_cast<Iterator::difference_type>(main); }
+		inline iterator getMainAsIterator() { return begin() + static_cast<Iterator::difference_type>(main_index); }
 		inline iterator getCurrentAsIterator() { return begin() + static_cast<Iterator::difference_type>(current); }
 
 		// update cursors
@@ -1652,7 +1571,7 @@ protected:
 		void adjustForDelete(iterator start, DocPos deleteStart, DocPos deleteEnd, bool includeCurrent=false);
 
 	private:
-		size_t main = 0;
+		size_t main_index = 0;
 		size_t current = 0;
 	} cursors;
 
@@ -1679,9 +1598,9 @@ protected:
 	class Transaction : public std::vector<Action> {
 	public:
 		// access state before/after transactions
-		inline void setBeforeState(const Cursors& cursors) { before = cursors; }
+		inline void setBeforeState(const Cursors& cursors_in) { before = cursors_in; }
 		inline const Cursors& getBeforeState() const { return before; }
-		inline void setAfterState(const Cursors& cursors) { after = cursors; }
+		inline void setAfterState(const Cursors& cursors_in) { after = cursors_in; }
 		inline const Cursors& getAfterState() const { return after; }
 
 		// add actions by type
@@ -1757,7 +1676,7 @@ protected:
 
 		BracketPair(DocPos start, DocPos end) : startChar(0), start(start), endChar(0), end(end), level(0), visible(false) {}
 
-			ImWchar startChar;
+		ImWchar startChar;
 		DocPos start;
 		ImWchar endChar;
 		DocPos end;
@@ -1771,7 +1690,7 @@ protected:
 	};
 
 	// overlay for matching brackets (visible and invisible)
-	// invisible brackets are for languages who's blocks are indent based (e.h. Python)
+	// invisible brackets are for languages who's blocks are indent based (e.g. Python)
 	class Bracketeer : public std::vector<BracketPair> {
 	public:
 		// update state (if required)
@@ -2101,6 +2020,7 @@ protected:
 	void replaceTextInCurrentCursor(const std::string_view& text);
 	void replaceTextInAllCursors(const std::string_view& text);
 	void replaceSectionText(const DocPos& start, const DocPos& end, const std::string_view& text);
+	void insertSectionText(DocPos pos, const std::string_view& text);
 
 	void openFindReplace();
 	void closeFindReplace();
@@ -2251,6 +2171,10 @@ protected:
 	std::string findAllButtonLabel = "Find All";
 	std::string replaceButtonLabel = "Replace";
 	std::string replaceAllButtonLabel = "Replace All";
+	std::string findCapsButtonLabel = "Aa";
+	std::string findWholeWordButtonLabel = "[]";
+	std::string findCloseButtonLabel = "x";
+
 	bool findReplaceVisible = false;
 	bool focusOnEditor = false;
 	bool focusOnFind = false;
@@ -2290,21 +2214,4 @@ protected:
 	Palette palette;
 	Palette miniMapPalette;
 	float paletteAlpha;
-
-#ifdef __BALAZS__
-	bool showShortTabGlyphs = false;
-#endif
-#ifdef __GEOGRAM__
-private:
-	void notifyGeogramTextChanged() {
-		if (geogramCallback) { geogramCallback(TEXT_EDITOR_TEXT_CHANGED, geogramClientData); }
-	}
-	CursorPosition geogramCursorPosition(DocPos pos) const;
-	TextEditorCallback geogramCallback = nullptr;
-	void* geogramClientData = nullptr;
-	std::string geogramWordContext;
-	ImFont* geogramFindFont = nullptr;
-	std::string geogramCloseLabel = "x";
-#endif
-
 };

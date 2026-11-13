@@ -5,8 +5,6 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(ENABLE_GEOGRAM "Enable standalone Geogram compatibility features" OFF)
-option(ENABLE_BALAZS "Enable unique features from BalazsJako's historical editor" OFF)
 option(BUILD_TESTING "Build editor regression tests" OFF)
 
 # Reuse an application's ImGui target, or the installed package. Both sides
@@ -59,12 +57,6 @@ set_target_properties(ImGuiColorTextEdit PROPERTIES
 if(BUILD_SHARED_LIBS)
     target_compile_definitions(ImGuiColorTextEdit PUBLIC TEXTEDITOR_SHARED)
     target_compile_definitions(ImGuiColorTextEdit PRIVATE TEXTEDITOR_BUILD)
-endif()
-if(ENABLE_GEOGRAM)
-    target_compile_definitions(ImGuiColorTextEdit PUBLIC __GEOGRAM__)
-endif()
-if(ENABLE_BALAZS)
-    target_compile_definitions(ImGuiColorTextEdit PUBLIC __BALAZS__)
 endif()
 
 configure_package_config_file(cmake/ImGuiColorTextEditConfig.cmake.in

@@ -28,6 +28,4 @@ include("${CMAKE_CURRENT_LIST_DIR}/ImGuiColorTextEdit-targets.cmake")
 set(ImGuiColorTextEdit_LIBRARIES ImGuiColorTextEdit::ImGuiColorTextEdit)
 get_target_property(ImGuiColorTextEdit_INCLUDE_DIRS
     ImGuiColorTextEdit::ImGuiColorTextEdit INTERFACE_INCLUDE_DIRECTORIES)
-set(ImGuiColorTextEdit_GEOGRAM_ENABLED @ENABLE_GEOGRAM@)
-set(ImGuiColorTextEdit_BALAZS_ENABLED @ENABLE_BALAZS@)
 check_required_components(ImGuiColorTextEdit)

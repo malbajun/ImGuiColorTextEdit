@@ -32,6 +32,10 @@ TextEditor::TextEditor() {
 }
 
 
+//
+//	TextEditor::reset
+//
+
 void TextEditor::reset() {
 	document.clear();
 	transactions.reset();
@@ -197,17 +201,6 @@ bool TextEditor::render(const char* title, const ImVec2& size, ImGuiChildFlags c
 		renderPanScrollIndicator();
 		renderFindReplace();
 		renderPopups();
-#ifdef __GEOGRAM__
-		if (geogramCallback && ImGui::IsWindowHovered() && IsMousePosOverGlyph(ImGui::GetMousePos())) {
-			const auto pos = GetDocPosAtMousePos(ImGui::GetMousePos());
-			if (!document[pos.line].marker && !textHoverCallback) {
-				geogramWordContext = GetWordContextAtScreenPos(ImGui::GetMousePos());
-				if (!geogramWordContext.empty()) {
-					geogramCallback(TEXT_EDITOR_TOOLTIP, geogramClientData);
-				}
-			}
-		}
-#endif
 
 		// handle scrolling caused by actions in this frame
 		handlePossibleScrolling();
@@ -439,22 +432,27 @@ void TextEditor::renderTextMarkers() {
 void TextEditor::renderMatchingBracketLines() {
 	if (config.showMatchingBrackets && bracketeer.size()) {
 		const auto active = bracketeer.getEnclosingBrackets(cursors.getMain().getInteractiveEnd());
+
 		// render bracket pair lines
 		for (auto bracket = bracketeer.begin(); bracket < bracketeer.end(); bracket++) {
-			if (bracket->visible && bracket->end.line - bracket->start.line > 1) {
-				const auto column = std::min(docPos2VisPos(bracket->start).column, docPos2VisPos(bracket->end).column);
+			if (bracket->visible &&
+				document[bracket->start.line].foldingState != FoldingState::folded &&
+				document[bracket->start.line].foldingState != FoldingState::hidden) {
 
-				for (size_t i = bracket->start.line + 1; i < bracket->end.line; i++) {
-					const auto& line = document[i];
+				const auto startVisPos = docPos2VisPos(bracket->start);
+				const auto endVisPos = docPos2VisPos(bracket->end);
 
-					if (line.foldingState != FoldingState::hidden) {
-						const auto lineX = cursorScreenPos.x + textLeftOffset + column * glyphSize.x;
-						const auto startY = cursorScreenPos.y + line.row * glyphSize.y;
-						const auto endY = startY +  line.rows * glyphSize.y;
+				if (startVisPos.row <= lastVisibleRow &&
+					endVisPos.row >= firstVisibleRow &&
+					endVisPos.row - startVisPos.row > 1) {
 
-						const auto color = palette.get(bracket == active ? Color::matchingBracketActive : Color::whitespace);
-						drawList->AddLine(ImVec2(lineX, startY), ImVec2(lineX, endY), color);
-					}
+					const auto column = std::min(startVisPos.column, endVisPos.column);
+					const auto lineX = cursorScreenPos.x + textLeftOffset + column * glyphSize.x;
+					const auto startY = cursorScreenPos.y + std::max(startVisPos.row + 1, firstVisibleRow) * glyphSize.y;
+					const auto endY = cursorScreenPos.y + std::min(endVisPos.row, lastVisibleRow) * glyphSize.y;
+
+					const auto color = palette.get(bracket == active ? Color::matchingBracketActive : Color::whitespace);
+					drawList->AddLine(ImVec2(lineX, startY), ImVec2(lineX, endY), color);
 				}
 			}
 		}
@@ -625,13 +623,8 @@ void TextEditor::renderText() {
 			if (codepoint == '\t') {
 				if (config.showTabs && column >= firstRenderableColumn) {
 					const auto x1 = glyphPos.x + glyphSize.x * 0.3f;
+					const auto x2 = glyphPos.x + (config.showShortTabs ? glyphSize.x : glyphSize.x * static_cast<float>(glyph.columns) - 1.0f);
 					const auto y = glyphPos.y + fontSize * 0.5f;
-#ifdef __BALAZS__
-					const auto tabColumns = showShortTabGlyphs ? 1 : glyph.columns;
-					const auto x2 = glyphPos.x + glyphSize.x * tabColumns;
-#else
-					const auto x2 = glyphPos.x + glyphSize.x;
-#endif
 
 					ImVec2 p1, p2, p3, p4;
 					p1 = ImVec2(x1, y);
@@ -1229,25 +1222,6 @@ void TextEditor::handleKeyboardInputs() {
 	if (ImGui::IsWindowFocused()) {
 		auto& io = ImGui::GetIO();
 		const auto macOS = io.ConfigMacOSXBehaviors;
-
-#ifdef __GEOGRAM__
-		// Leave normal editing and builtin autocomplete untouched without a callback.
-		if (geogramCallback) {
-			if (ImGui::Shortcut(ImGuiKey_F2)) {
-				geogramCallback(TEXT_EDITOR_SAVE, geogramClientData);
-				return;
-			} else if (ImGui::Shortcut(ImGuiKey_F5)) {
-				geogramCallback(TEXT_EDITOR_RUN, geogramClientData);
-				return;
-			} else if (!AnyCursorHasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C)) {
-				geogramCallback(TEXT_EDITOR_STOP, geogramClientData);
-				return;
-			} else if (!config.readOnly && !autocomplete.isActive() && ImGui::Shortcut(ImGuiKey_Tab)) {
-				geogramCallback(TEXT_EDITOR_COMPLETION, geogramClientData);
-				return;
-			}
-		}
-#endif
 
 		// ignore specific keys when autocomplete is active, they will be handled later
 		if (autocomplete.isActive() && autocomplete.isSpecialKeyPressed()) {
@@ -1939,9 +1913,6 @@ void TextEditor::paste() {
 void TextEditor::undo() {
 	if (transactions.canUndo()) {
 		transactions.undo(config, document, cursors);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
 		makeCursorVisible();
 	}
 }
@@ -1954,9 +1925,6 @@ void TextEditor::undo() {
 void TextEditor::redo() {
 	if (transactions.canRedo()) {
 		transactions.redo(config, document, cursors);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
 		makeCursorVisible();
 	}
 }
@@ -3187,9 +3155,6 @@ bool TextEditor::endTransaction(std::shared_ptr<Transaction> transaction) {
 		cursors.update(document);
 		transaction->setAfterState(cursors);
 		transactions.add(transaction);
-#ifdef __GEOGRAM__
-		notifyGeogramTextChanged();
-#endif
 		return true;
 
 	} else {
@@ -3456,7 +3421,7 @@ void TextEditor::Cursor::ensureNotHidden(const Document& document) {
 
 void TextEditor::Cursors::reset() {
 	clear();
-	main = 0;
+	main_index = 0;
 	current = 0;
 }
 
@@ -3556,7 +3521,7 @@ void TextEditor::Cursors::clearAdditional(bool reset) {
 		}
 	}
 
-	main = 0;
+	main_index = 0;
 	current = 0;
 	front().setCurrent(true);
 
@@ -3638,12 +3603,12 @@ void TextEditor::Cursors::update(const Document& document) {
 			}
 
 			// find main and current cursor
-			main = 0;
+			main_index = 0;
 			current = 0;
 
 			for (size_t c = 0; c < size(); c++) {
 				if (at(c).isMain()) {
-					main = c;
+					main_index = c;
 
 				} else if (at(c).isCurrent()) {
 					current = c;
@@ -3809,6 +3774,23 @@ std::string TextEditor::Document::getSectionText(DocPos start, DocPos end) const
 	}
 
 	return section;
+}
+
+
+//
+//	TextEditor::Document::getLineCodePoints
+//
+
+std::vector<ImWchar> TextEditor::Document::getLineCodePoints(size_t lineNo) const {
+	auto& line = at(lineNo);
+	std::vector<ImWchar> result;
+	result.reserve(line.size());
+
+	for (auto& glyph : line) {
+		result.emplace_back(glyph.codepoint);
+	}
+
+	return result;
 }
 
 
@@ -4405,6 +4387,31 @@ TextEditor::DocPos TextEditor::Document::normalizePos(DocPos pos) const {
 	} else {
 		return pos;
 	}
+}
+
+
+//
+//	TextEditor::Document::getContext
+//
+
+std::string TextEditor::Document::getContext(DocPos pos, std::function<bool(ImWchar)> isContext) const {
+	const auto& line = at(pos.line);
+	auto start = pos;
+	auto end = pos;
+
+	if (isContext(line[end.index].codepoint)) {
+		end.index++;
+
+		while (end.index < line.size() && isContext(line[end.index].codepoint)) {
+			end.index++;
+		}
+
+		while (start.index > 0 && isContext(line[start.index - 1].codepoint)) {
+			start.index--;
+		}
+	}
+
+	return (start == end) ? "" : getSectionText(start, end);
 }
 
 
@@ -5318,10 +5325,6 @@ static bool inputString(const char* label, std::string* value, ImGuiInputTextFla
 //
 
 void TextEditor::renderFindReplace() {
-#ifdef __GEOGRAM__
-	const bool useGeogramFont = config.findReplaceEnabled && findReplaceVisible && geogramFindFont;
-	if (useGeogramFont) { ImGui::PushFont(geogramFindFont, 0.0f); }
-#endif
 	// render find/replace window (if required)
 	if (findReplaceVisible) {
 		// save current screen position
@@ -5334,7 +5337,12 @@ void TextEditor::renderFindReplace() {
 
 		auto button1Width = ImGui::CalcTextSize(findButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f;
 		auto button2Width = ImGui::CalcTextSize(findAllButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f;
-		const auto optionWidth = ImGui::CalcTextSize("Aa").x + style.ItemSpacing.x * 2.0f;
+
+		auto optionWidth = 0.0f;
+		optionWidth = std::max(optionWidth, ImGui::CalcTextSize(findCapsButtonLabel.c_str()).x);
+		optionWidth = std::max(optionWidth, ImGui::CalcTextSize(findWholeWordButtonLabel.c_str()).x);
+		optionWidth = std::max(optionWidth, ImGui::CalcTextSize(findCloseButtonLabel.c_str()).x);
+		optionWidth += style.ItemSpacing.x * 2.0f;
 
 		if (!config.readOnly) {
 			button1Width = std::max(button1Width, ImGui::CalcTextSize(replaceButtonLabel.c_str()).x + style.ItemSpacing.x * 2.0f);
@@ -5423,24 +5431,19 @@ void TextEditor::renderFindReplace() {
 
 		ImGui::SameLine();
 
-		if (latchButton("Aa", &caseSensitiveFind, ImVec2(optionWidth, 0.0f))) {
+		if (latchButton(findCapsButtonLabel.c_str(), &caseSensitiveFind, ImVec2(optionWidth, 0.0f))) {
 			find();
 		}
 
 		ImGui::SameLine();
 
-		if (latchButton("[]", &wholeWordFind, ImVec2(optionWidth, 0.0f))) {
+		if (latchButton(findWholeWordButtonLabel.c_str(), &wholeWordFind, ImVec2(optionWidth, 0.0f))) {
 			find();
 		}
 
 		ImGui::SameLine();
 
-#ifdef __GEOGRAM__
-		const char* closeLabel = geogramCloseLabel.c_str();
-#else
-		const char* closeLabel = "x";
-#endif
-		if (ImGui::Button(closeLabel, ImVec2(optionWidth, 0.0f))) {
+		if (ImGui::Button(findCloseButtonLabel.c_str(), ImVec2(optionWidth, 0.0f))) {
 			closeFindReplace();
 		}
 
@@ -5483,9 +5486,6 @@ void TextEditor::renderFindReplace() {
 		ImGui::PopStyleVar();
 		ImGui::SetCursorScreenPos(currentScreenPosition);
 	}
-#ifdef __GEOGRAM__
-	if (useGeogramFont) { ImGui::PopFont(); }
-#endif
 }
 
 
@@ -5621,6 +5621,19 @@ void TextEditor::replaceSectionText(const DocPos& start, const DocPos& end, cons
 	const auto transaction = startTransaction();
 	deleteText(transaction, start, end);
 	const auto newEnd = insertText(transaction, start, text);
+	cursors.clearAdditional();
+	cursors.getMain().update(newEnd, newEnd);
+	endTransaction(transaction);
+}
+
+
+//
+//	TextEditor::insertSectionText
+//
+
+void TextEditor::insertSectionText(DocPos pos, const std::string_view& text) {
+	const auto transaction = startTransaction();
+	const auto newEnd = insertText(transaction, pos, text);
 	cursors.clearAdditional();
 	cursors.getMain().update(newEnd, newEnd);
 	endTransaction(transaction);
@@ -10929,8 +10942,18 @@ const TextEditor::Palette& TextEditor::GetDarkPalette() {
 		IM_COL32(128, 128, 144, 255),	// line number
 		IM_COL32(224, 224, 240, 255),	// current line number
 		IM_COL32(255, 255, 255,   8),	// current line highlight
-		IM_COL32(255, 255, 255,  16)	// current line highlight border
-	}};
+		IM_COL32(255, 255, 255,  16),	// current line highlight border
+
+		IM_COL32(255,   0,   0, 255),	// custom color 1
+		IM_COL32(245, 140,   0, 255),	// custom color 2
+		IM_COL32(255, 255,  40, 255),	// custom color 3
+		IM_COL32(  0, 255,   0, 255),	// custom color 4
+		IM_COL32( 63, 255, 205, 255),	// custom color 5
+		IM_COL32( 70, 240, 240, 255),	// custom color 6
+		IM_COL32(  0,   0, 255, 255),	// custom color 7
+		IM_COL32(145,   0, 224, 255),	// custom color 8
+		IM_COL32(240,  50, 230, 255)	// custom color 9
+}};
 
 	return palette;
 }
@@ -10960,7 +10983,17 @@ const TextEditor::Palette& TextEditor::GetLightPalette() {
 		IM_COL32(  0,  80,  80, 255),	// line number
 		IM_COL32(  0,   0,   0, 255),	// current line number
 		IM_COL32(  0,   0,   0,   8),	// current line highlight
-		IM_COL32(  0,   0,   0,  16)	// current line highlight border
+		IM_COL32(  0,   0,   0,  16),	// current line highlight border
+
+		IM_COL32(255,   0,   0, 255),	// custom color 1
+		IM_COL32(245, 140,   0, 255),	// custom color 2
+		IM_COL32(255, 255,  40, 255),	// custom color 3
+		IM_COL32(  0, 255,   0, 255),	// custom color 4
+		IM_COL32( 63, 255, 205, 255),	// custom color 5
+		IM_COL32( 70, 240, 240, 255),	// custom color 6
+		IM_COL32(  0,   0, 255, 255),	// custom color 7
+		IM_COL32(145,   0, 224, 255),	// custom color 8
+		IM_COL32(240,  50, 230, 255)	// custom color 9
 	}};
 
 	return palette;
@@ -11055,68 +11088,3 @@ const std::vector<std::string> TextEditor::GetRegisteredLanguages() {
 
 	return builtinLanguages;
 }
-
-
-#ifdef __GEOGRAM__
-// Geogram's completion context includes member access ('.', ':') but stops
-// at whitespace, argument separators and assignment. Work in document glyphs
-// so tabs, word wrapping and folded lines do not change the selected text.
-std::string TextEditor::GetWordContextAtScreenPos(const ImVec2& screenPos) const {
-	if (!IsMousePosOverGlyph(screenPos)) { return ""; }
-	const auto pos = GetDocPosAtMousePos(screenPos);
-	const auto& line = document[pos.line];
-	auto isContext = [](ImWchar c) {
-		return !CodePoint::isWhiteSpace(c) && c != ',' && c != '(' && c != ')' && c != '=';
-	};
-	if (pos.index >= line.size() || !isContext(line[pos.index].codepoint)) { return ""; }
-	auto start = pos;
-	auto end = pos;
-	while (start.index > 0 && isContext(line[start.index - 1].codepoint)) { --start.index; }
-	while (end.index < line.size() && isContext(line[end.index].codepoint)) { ++end.index; }
-	return document.getSectionText(start, end);
-}
-
-void TextEditor::SetCursorPosition(const CursorPosition& pos) {
-	const size_t lineNumber = normalizeLine(static_cast<size_t>(std::max(0, pos.line)));
-	const auto& line = document[lineNumber];
-	size_t index = 0;
-	size_t column = 0;
-	const auto target = static_cast<size_t>(std::max(0, pos.column));
-	// SetCursorPosition is commonly called immediately after SetText, before
-	// typesetting has populated the cached glyph widths.
-	while (index < line.size()) {
-		const auto c = line[index].codepoint;
-		const auto width = c == '\t' ? config.tabSize - column % config.tabSize : CodePoint::getGlyphWidth(c);
-		if (column + width > target) { break; }
-		column += width;
-		++index;
-	}
-	SetCursor(DocPos(lineNumber, index));
-}
-
-TextEditor::CursorPosition TextEditor::geogramCursorPosition(DocPos pos) const {
-	pos = normalizePos(pos);
-	size_t column = 0;
-	for (size_t i = 0; i < pos.index; ++i) {
-		const auto c = document[pos.line][i].codepoint;
-		column += c == '\t' ? config.tabSize - column % config.tabSize : CodePoint::getGlyphWidth(c);
-	}
-	return CursorPosition(static_cast<int>(pos.line), static_cast<int>(column));
-}
-
-TextEditor::CursorPosition TextEditor::GetMousePosition() const {
-	return geogramCursorPosition(GetDocPosAtMousePos(ImGui::GetMousePos()));
-}
-
-TextEditor::CursorPosition TextEditor::GetSelectionStart() const {
-	return geogramCursorPosition(GetMainCursorSelection().start);
-}
-
-void TextEditor::InsertText(const std::string& text) {
-	if (!config.readOnly && !text.empty()) {
-		auto transaction = startTransaction();
-		insertTextIntoAllCursors(transaction, text);
-		endTransaction(transaction);
-	}
-}
-#endif
