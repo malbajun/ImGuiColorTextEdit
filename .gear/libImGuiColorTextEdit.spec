@@ -3,7 +3,7 @@
 
 Name:          lib%oname
 Version:       1.93.0
-Release:       alt1
+Release:       alt2
 Summary:       Colorizing text editor for ImGui
 License:       MIT
 Group:         Sciences/Mathematics
@@ -16,7 +16,6 @@ BuildRequires: cmake
 BuildRequires: ctest
 BuildRequires: gcc-c++
 BuildRequires: cmake(imgui)
-BuildRequires: libimgui-devel >= 1.93.0
 
 %description
 Syntax highlighting text editor for ImGui.
@@ -59,7 +58,6 @@ Summary:       Colorizing text editor for ImGui development files
 
 Requires:      %name = %EVR
 Requires:      cmake(imgui)
-Requires:      libimgui-devel >= 1.93.0
 
 %description   devel
 Colorizing text editor for ImGui development files.
@@ -104,8 +102,6 @@ Main features:
 %build
 %cmake \
    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-   -DENABLE_GEOGRAM=ON \
-   -DENABLE_BALAZS=ON \
    -DBUILD_SHARED_LIBS=ON \
    -DCMAKE_INSTALL_LIBDIR=%_lib \
    -DBUILD_TESTING=ON \
@@ -130,6 +126,13 @@ Main features:
 
 
 %changelog
+* Sat Nov 14 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt2
+- * merged current goossens upstream
+- - removed Geogram and Balazs feature switches and legacy helpers
+- * used upstream callbacks, context queries and tab rendering
+- ! bumped library ABI after removing fork-specific state
+- * used the ImGui CMake development capability
+
 * Tue Nov 10 2026 Pavel Skrylev <majioa@altlinux.org> 1.93.0-alt1
 - ^ 1.0.0 -> 1.93.0
 - * rebased to current goossens upstream with optional standalone Geogram
