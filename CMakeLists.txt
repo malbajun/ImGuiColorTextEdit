@@ -53,7 +53,8 @@ target_link_libraries(ImGuiColorTextEdit PUBLIC
     $<BUILD_INTERFACE:${_imgui_target}>
     $<INSTALL_INTERFACE:imgui::imgui>)
 set_target_properties(ImGuiColorTextEdit PROPERTIES
-    VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+    # Removing the fork-specific state changed the public class layout.
+    VERSION ${PROJECT_VERSION} SOVERSION 2)
 if(BUILD_SHARED_LIBS)
     target_compile_definitions(ImGuiColorTextEdit PUBLIC TEXTEDITOR_SHARED)
     target_compile_definitions(ImGuiColorTextEdit PRIVATE TEXTEDITOR_BUILD)
